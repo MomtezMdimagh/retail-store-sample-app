@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.4.0](https://github.com/MomtezMdimagh/retail-store-sample-app/compare/v1.3.0...v1.4.0) (2026-09-22)
+
+
+### Features
+
+* add CI to build and push service images via OIDC ([#1](https://github.com/MomtezMdimagh/retail-store-sample-app/issues/1)) ([14b47be](https://github.com/MomtezMdimagh/retail-store-sample-app/commit/14b47be0f1f265d8cbe3acdcc2b8f7375c566629))
+
+
+### Bug Fixes
+
+* set chart name to plain service name ([43e782c](https://github.com/MomtezMdimagh/retail-store-sample-app/commit/43e782c102f9477e8808858af6d4e1000e905eec))
+
 ## [1.3.0](https://github.com/aws-containers/retail-store-sample-app/compare/v1.2.4...v1.3.0) (2025-09-16)
 
 
