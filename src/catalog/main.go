@@ -75,6 +75,13 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// go-envconfig v0.1.1 always runs values through os.Expand, so a "$" inside a generated
+	// password (as AWS RDS-managed passwords can contain) gets replaced with an empty string and
+	// MySQL rejects the login. Use the raw, unexpanded value for the password.
+	if password, ok := os.LookupEnv("RETAIL_CATALOG_PERSISTENCE_PASSWORD"); ok {
+		config.Database.Password = password
+	}
+
 	db, err := repository.NewRepository(config.Database)
 	if err != nil {
 		log.Fatal(err)
