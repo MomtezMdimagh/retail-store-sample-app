@@ -9,6 +9,8 @@ on:
       - "src/checkout/**"
       - "src/orders/**"
       - "src/ui/**"
+  # Manual run from the Actions tab - builds all five services.
+  workflow_dispatch:
 
 permissions:
   id-token: write
@@ -22,7 +24,7 @@ jobs:
   detect-changes:
     runs-on: ubuntu-latest
     outputs:
-      services: ${{ steps.filter.outputs.changes }}
+      services: ${{ steps.pick.outputs.services }}
     steps:
       - uses: actions/checkout@v7.0.1
       - id: filter
@@ -39,6 +41,15 @@ jobs:
               - 'src/orders/**'
             ui:
               - 'src/ui/**'
+      - id: pick
+        env:
+          CHANGED: ${{ steps.filter.outputs.changes }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo 'services=["cart","catalog","checkout","orders","ui"]' >> "$GITHUB_OUTPUT"
+          else
+            echo "services=${CHANGED}" >> "$GITHUB_OUTPUT"
+          fi
 
   build-and-push:
     needs: detect-changes
@@ -79,8 +90,16 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
 
+      # Writing the new tag back to the platform repo needs a GitHub App (see the platform repo's
+      # docs/runbooks/deploy.md). Without one, the image is still built and pushed and the job
+      # succeeds - the tag is bumped by hand instead.
+      - name: Tag write-back not configured
+        if: vars.PLATFORM_REPO_APP_ID == ''
+        run: echo "::notice::Pushed ${{ steps.tag.outputs.sha }} for ${{ matrix.service }}. PLATFORM_REPO_APP_ID is not set, so bump image.tag in the platform repo manually."
+
       - name: Generate a token for the platform repo
         id: platform-token
+        if: vars.PLATFORM_REPO_APP_ID != ''
         uses: actions/create-github-app-token@v3.2.0
         with:
           app-id: ${{ vars.PLATFORM_REPO_APP_ID }}
@@ -89,6 +108,7 @@ jobs:
           repositories: retail-store-eks-platform
 
       - name: Check out the platform repo
+        if: vars.PLATFORM_REPO_APP_ID != ''
         uses: actions/checkout@v7.0.1
         with:
           repository: MomtezMdimagh/retail-store-eks-platform
@@ -96,6 +116,7 @@ jobs:
           path: platform-repo
 
       - name: Update the image tag and push, retrying on a race with another matrix job
+        if: vars.PLATFORM_REPO_APP_ID != ''
         working-directory: platform-repo
         run: |
           set -euo pipefail
